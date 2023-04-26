@@ -31,11 +31,52 @@ problem = args.problem
 dataset = args.dataset
 model = args.model
 
-s = sparse.load_npz('../data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz'.format(problem=problem, dataset=dataset)).todense()
-x = sparse.load_npz('../data/fiddle/FIDDLE_{dataset}/features/{problem}/X.npz'.format(problem=problem, dataset=dataset)).todense()
 
-s_feats = json.load(open('../data/fiddle/FIDDLE_{dataset}/features/{problem}/s.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
-x_feats = json.load(open('../data/fiddle/FIDDLE_{dataset}/features/{problem}/X.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
+if args.load:
+    with open("../data/fiddle/preprocessed/{dataset}/{problem}_features.pkl", 'rb') as file:
+        features = pickle.load(file)
+
+else:
+    s = sparse.load_npz('../data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz'.format(problem=problem, dataset=dataset)).todense()
+    x = sparse.load_npz('../data/fiddle/FIDDLE_{dataset}/features/{problem}/X.npz'.format(problem=problem, dataset=dataset)).todense()
+
+    s_feats = json.load(open('../data/fiddle/FIDDLE_{dataset}/features/{problem}/s.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
+    x_feats = json.load(open('../data/fiddle/FIDDLE_{dataset}/features/{problem}/X.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
+    
+    end = x.shape[1]-1
+    x_start = np.hstack([s,x[:,0,:]])
+    x_end = np.hstack([s,x[:,end,:]])
+    feats = s_feats + x_feats
+    
+    feat_idx, sets, freq_stats = get_feature_idx(
+        dataset=dataset,
+        x_feats=x_feats,
+        s_feats=s_feats)
+    
+    df_start = pd.DataFrame(ohe_to_ordinal(
+        feature_sets=sets,
+        feat_idx=feat_idx,
+        x=x_start
+    ))
+    df_end = pd.DataFrame(ohe_to_ordinal(
+        feature_sets=sets,
+        feat_idx=feat_idx,
+        x=x_end
+    ))
+
+    na_start = get_na_mask(x_start, freq_stats, feat_idx)
+    na_end = get_na_mask(x_end, freq_stats, feat_idx)
+    na_both = np.logical_and(na_start, na_end)
+
 
 y = pd.read_csv('../data/fiddle/FIDDLE_{dataset}/population/{problem}.csv'.format(problem=problem, dataset=dataset))
+
+df_start = df_start.iloc[na_both,:]
+df_end = df_end.iloc[na_both,:]
+label = y[problem[:problem.find('_')+'_LABEL']]
+
+xtr, xte, ytr, yte = train_test_split(df_start, y_both, stratify=y_both, random_state=123)
+          
+
+        
 
