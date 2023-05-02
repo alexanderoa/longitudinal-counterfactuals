@@ -7,6 +7,7 @@ import sys
 import io
 import os
 import argparse
+import pickle
 
 from ordinal import *
 from evaluate import *
@@ -19,29 +20,29 @@ cwd = os.getcwd()
 for d in datasets:
     for p in problems:
         s = sparse.load_npz(
-            os.path.join(cwd,"/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz".format(
+            cwd+"/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz".format(
                 problem=p, dataset=d
-            ))
+            )
         ).todense()
         x = sparse.load_npz(
-            os.path.join(cwd,"/data/fiddle/FIDDLE_{dataset}/features/{problem}/X.npz".format(
+            cwd+"/data/fiddle/FIDDLE_{dataset}/features/{problem}/X.npz".format(
                 problem=p, dataset=d
-            ))
+            )
         ).todense()
 
         s_feats = json.load(
             open(
-                os.path.join(cwd,"/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.feature_names.json".format(
+                cwd+"/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.feature_names.json".format(
                     problem=p, dataset=d
-                )),
+                ),
                 "r",
             )
         )
         x_feats = json.load(
             open(
-                os.path.join(cwd,+"/data/fiddle/FIDDLE_{dataset}/features/{problem}/X.feature_names.json".format(
+                cwd+"/data/fiddle/FIDDLE_{dataset}/features/{problem}/X.feature_names.json".format(
                     problem=p, dataset=d
-                )),
+                ),
                 "r",
             )
         )
@@ -75,15 +76,14 @@ for d in datasets:
         results['sets'] = sets
         results['freq_stats'] = freq_stats
         
-        save_dir = os.path.join(cwd,"/data/fiddle/preprocessed/{dataset}/{problem}/".format(
+        if not os.path.exists(cwd+"/data/fiddle/preprocessed/{dataset}/".format(dataset=d)):
+            os.mkdir(cwd+"/data/fiddle/preprocessed/{dataset}/".format(dataset=d))
+            
+        save_dir = cwd+"/data/fiddle/preprocessed/{dataset}/{problem}/".format(
                     problem=p, dataset=d
-                ))
+                )
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
-        output = open(
-            os.path.join(cwd,"/data/fiddle/preprocessed/{dataset}/{problem}/results.pkl".format(
-                    problem=p, dataset=d
-                )), 
-            'w')
-        pickle.dump(results, output)
-        output.close()
+        
+        with open(save_dir + 'result.pkl', 'wb') as f:
+            pickle.dump(results, f)
