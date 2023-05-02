@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 import scipy as sp
 import sys
 import io
@@ -31,6 +31,7 @@ problem = args.problem
 dataset = args.dataset
 model = args.model
 
+print('Loading data...')
 
 if args.load:
     with open("../data/fiddle/preprocessed/{dataset}/{problem}_features.pkl", 'rb') as file:
@@ -75,8 +76,46 @@ df_start = df_start.iloc[na_both,:]
 df_end = df_end.iloc[na_both,:]
 label = y[problem[:problem.find('_')+'_LABEL']]
 
+print('Training model...')
+
 xtr, xte, ytr, yte = train_test_split(df_start, y_both, stratify=y_both, random_state=123)
-          
+if model == 'rf':
+    boundary = RandonForestClassifier()
+elif model == 'logistic':
+    boundary = LogisticRegression(solver='liblinear', penalty='l1')
+elif model == 'boosting':
+    boundary = GradientBoostingClassifier()
 
-        
+boundary.fit(xtr, ytr)
 
+train = pd.DataFrame(xtr, columns = df_start.columns)
+train['label'] = ytr
+
+start = train.drop(columns=['label'])
+
+test = pd.DataFrame(xte, columns=df_start.columns)
+test['label'] = yte
+
+pos = np.where(yte==1)
+diff = df_end - df_start
+test_pos = test.iloc[pos]
+test_pos[freq_stats] = test_pos[freq_stats].apply(pd.to_numeric)
+
+print('Evaluating counterfactuals...')
+
+eval_df = test_pos
+results = evaluate_rank(
+    df = eval_df,
+    model = boundary,
+    diff = diff,
+    n_cfs=10,
+    n_avg=3,
+    ftv = freq_stats,
+    cont = freq_stats
+)
+
+print('Saving results...')
+
+savename = dataset + '_' +  problem + '_' + 'result.pkl'
+with open(savename, 'rb') as file:
+    results = pickle.load(file)

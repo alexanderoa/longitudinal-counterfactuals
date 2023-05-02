@@ -56,8 +56,12 @@ def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5):
                 ftv=ftv,
                 n_avg=n_avg
             )
-            row = []
-            changes.loc[len(changes)-1] = [int(i), int(j)] + list(np.zeros(len(ftv)))
+            vals = [[int(i)], [int(j)]]
+            for i in range(len(d)):
+                vals.append([d[i]])
+            row = pd.DataFrame(dict(zip(['idx', 'cf_idx'] + ftv, vals)))
+            changes = pd.concat([changes, row])
+            # changes.loc[len(changes)-1] = [int(i), int(j)] + list(np.zeros(len(ftv)))
             # changes.iloc[changes.shape[0]-1,:][ftv] = d
             all_comparisons.append(c)
             comparisons.append(c)
