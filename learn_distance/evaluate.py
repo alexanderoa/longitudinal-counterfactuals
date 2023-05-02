@@ -29,11 +29,15 @@ def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5):
     for i in trange(df.shape[0]):
         query = df.iloc[i:(i+1),:]
         query = query.drop(columns=['label'])
-        e = exp.generate_counterfactuals(
-            query,
-            total_CFs=n_cfs, 
-            desired_class="opposite",
-            features_to_vary=ftv)
+        try:
+            e = exp.generate_counterfactuals(
+                query,
+                total_CFs=n_cfs, 
+                desired_class="opposite",
+                features_to_vary=ftv)
+        except:
+            failed.append(i)
+            continue
         cfs = e.cf_examples_list[0].final_cfs_df
         if cfs is None:
             failed.append(i)
@@ -53,8 +57,8 @@ def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5):
                 n_avg=n_avg
             )
             row = []
-            changes.loc[len(changes)] = [int(i), int(j)] + list(np.zeros(len(ftv)))
-            changes.iloc[i,:][ftv] = d
+            changes.loc[len(changes)-1] = [int(i), int(j)] + list(np.zeros(len(ftv)))
+            # changes.iloc[changes.shape[0]-1,:][ftv] = d
             all_comparisons.append(c)
             comparisons.append(c)
         top = np.argmin(comparisons)

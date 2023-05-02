@@ -1,6 +1,6 @@
 import numpy as np
 
-def get_feature_idx(frequent, stats, s_feats, x_feats):
+def get_feature_idx(s_feats, x_feats, dataset=None, stats=['value', 'min', 'max', 'mean']):
     """
     Obtains indices of feature buckets for conversion to ordinal data
 
@@ -17,11 +17,34 @@ def get_feature_idx(frequent, stats, s_feats, x_feats):
     feats = list(s_feats) + list(x_feats)
     freq_stats = []
     freq_mask = []
+    frequent = []
+    for f in feats:
+        mask = f.find('_mask')
+        if mask > 0:
+            frequent.append(f[:mask])
+        
     for f in frequent:
         for s in stats:
             freq_stats.append(f + '_' + s)
         freq_mask.append(f + '_' + 'mask')
     feature_prefix = freq_mask + freq_stats
+    
+    if dataset == 'eicu':
+        for f in feats:
+            value = f.find('_value')
+            if value > 0:
+                feature_prefix.append(f[:value])
+                
+        sets = np.unique(feature_prefix)
+        feat_idx = {}
+        for var in sets:
+            feat_idx[var] = []
+            for idx, feature in enumerate(feats):
+                if var in feature:
+                    feat_idx[var].append(idx)
+                    
+        return feat_idx, sets, freq_stats
+        
     for f in s_feats:
         prefix = f[:(f.find('value')-1)]
         feature_prefix.append(prefix)
