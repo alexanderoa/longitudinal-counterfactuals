@@ -2,12 +2,9 @@ import sparse
 import json
 import numpy as np
 import pandas as pd
-import scipy as sp
-import sys
-import io
 import os
-import argparse
 import pickle
+from tqdm import tqdm
 
 from ordinal import *
 from evaluate import *
@@ -17,8 +14,8 @@ problems = ["ARF_4h", "ARF_12h", "Shock_4h", "Shock_12h"]
 
 cwd = os.getcwd()
 
-for d in datasets:
-    for p in problems:
+for d in tqdm(datasets):
+    for p in tqdm(problems):
         s = sparse.load_npz(
             cwd+"/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz".format(
                 problem=p, dataset=d
