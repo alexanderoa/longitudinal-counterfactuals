@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 import scipy as sp
 import sys
 import io
+import os
 import argparse
 from tqdm import tqdm, trange
 
@@ -33,16 +34,22 @@ model = args.model
 
 print('Loading data...')
 
+cwd = os.getcwd()
+
 if args.load:
-    with open("../data/fiddle/preprocessed/{dataset}/{problem}_features.pkl", 'rb') as file:
+    '''
+    # file path is not correct, need to update
+    
+    with open(cwd+"/data/fiddle/preprocessed/{dataset}/{problem}_features.pkl", 'rb') as file:
         features = pickle.load(file)
+    '''
 
 else:
-    s = sparse.load_npz('../data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz'.format(problem=problem, dataset=dataset)).todense()
-    x = sparse.load_npz('../data/fiddle/FIDDLE_{dataset}/features/{problem}/X.npz'.format(problem=problem, dataset=dataset)).todense()
+    s = sparse.load_npz(cwd+'/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz'.format(problem=problem, dataset=dataset)).todense()
+    x = sparse.load_npz(cwd+'/data/fiddle/FIDDLE_{dataset}/features/{problem}/X.npz'.format(problem=problem, dataset=dataset)).todense()
 
-    s_feats = json.load(open('../data/fiddle/FIDDLE_{dataset}/features/{problem}/s.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
-    x_feats = json.load(open('../data/fiddle/FIDDLE_{dataset}/features/{problem}/X.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
+    s_feats = json.load(open(cwd+'/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
+    x_feats = json.load(open(cwd+'/data/fiddle/FIDDLE_{dataset}/features/{problem}/X.feature_names.json'.format(problem=problem, dataset=dataset), 'r'))
     
     end = x.shape[1]-1
     x_start = np.hstack([s,x[:,0,:]])
@@ -70,7 +77,7 @@ else:
     na_both = np.logical_and(na_start, na_end)
 
 
-y = pd.read_csv('../data/fiddle/FIDDLE_{dataset}/population/{problem}.csv'.format(problem=problem, dataset=dataset))
+y = pd.read_csv(cwd+'/data/fiddle/FIDDLE_{dataset}/population/{problem}.csv'.format(problem=problem, dataset=dataset))
 
 df_start = df_start.iloc[na_both,:]
 df_end = df_end.iloc[na_both,:]
