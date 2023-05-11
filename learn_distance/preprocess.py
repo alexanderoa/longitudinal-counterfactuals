@@ -16,6 +16,10 @@ cwd = os.getcwd()
 
 for d in tqdm(datasets):
     for p in tqdm(problems):
+        filepath = cwd+"/data/fiddle/preprocessed/{dataset}/{problem}/results.pkl".format(
+                    problem=p, dataset=d)
+        if os.path.isfile(filepath):
+            continue
         s = sparse.load_npz(
             cwd+"/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz".format(
                 problem=p, dataset=d
