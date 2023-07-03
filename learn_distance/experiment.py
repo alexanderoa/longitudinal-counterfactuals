@@ -10,7 +10,9 @@ import sys
 import io
 import os
 import argparse
+import pickle
 from tqdm import tqdm, trange
+import time
 
 import dice_ml
 from dice_ml.utils import helpers
@@ -24,6 +26,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--dataset', help='Dataset for experiment', choices=['eicu', 'mimic3'], type=str)
 parser.add_argument('-p', '--problem', help='Prediction problem for experiment', choices=['ARF_4h', 'ARF_12h', 'Shock_4h', 'Shock_12h', 'mortality_48h'], type=str)
 parser.add_argument('-m', '--model', help='sklearn model for experiment', choices=['rf', 'logistic', 'boosting'], type=str)
+parser.add_argument('-e', '--method', help='method for generating counterfactuals', choices=['genetic', 'random', 'kdtree'], type=str, required=False)
 parser.add_argument('-l', '--load', action='store_true', help='load preprocessed data')
 
 args = parser.parse_args()
@@ -31,18 +34,24 @@ args = parser.parse_args()
 problem = args.problem
 dataset = args.dataset
 model = args.model
+if args.method is not None:
+    method = args.method
+else:
+    method = 'random'
 
 print('Loading data...')
 
 cwd = os.getcwd()
 
 if args.load:
-    '''
-    # file path is not correct, need to update
+    with open(cwd+"/data/fiddle/preprocessed/{dataset}/{problem}/result.pkl".format(problem=problem, dataset=dataset), 'rb') as file:
+        prep = pickle.load(file)
     
-    with open(cwd+"/data/fiddle/preprocessed/{dataset}/{problem}_features.pkl", 'rb') as file:
-        features = pickle.load(file)
-    '''
+    df_start = prep['df_start']
+    df_end = prep['df_end']
+    na_both = prep['na_mask']
+    freq_stats = prep['freq_stats']
+
 
 else:
     s = sparse.load_npz(cwd+'/data/fiddle/FIDDLE_{dataset}/features/{problem}/s.npz'.format(problem=problem, dataset=dataset)).todense()
@@ -81,13 +90,13 @@ y = pd.read_csv(cwd+'/data/fiddle/FIDDLE_{dataset}/population/{problem}.csv'.for
 
 df_start = df_start.iloc[na_both,:]
 df_end = df_end.iloc[na_both,:]
-label = y[problem[:problem.find('_')+'_LABEL']]
+label = y[problem[:problem.find('_')]+'_LABEL'][na_both]
 
 print('Training model...')
 
-xtr, xte, ytr, yte = train_test_split(df_start, y_both, stratify=y_both, random_state=123)
+xtr, xte, ytr, yte = train_test_split(df_start, label, stratify=label, random_state=123)
 if model == 'rf':
-    boundary = RandonForestClassifier()
+    boundary = RandomForestClassifier()
 elif model == 'logistic':
     boundary = LogisticRegression(solver='liblinear', penalty='l1')
 elif model == 'boosting':
@@ -118,11 +127,13 @@ results = evaluate_rank(
     n_cfs=10,
     n_avg=3,
     ftv = freq_stats,
-    cont = freq_stats
+    cont = freq_stats,
+    method=method
 )
 
 print('Saving results...')
 
-savename = dataset + '_' +  problem + '_' + 'result.pkl'
-with open(savename, 'rb') as file:
-    results = pickle.load(file)
+timestr = time.strftime("%Y%m%d-%H%M%S")
+savename = dataset + timestr + '_' +  problem + '_' + 'result.pkl'
+with open(savename, 'wb') as file:
+    results = pickle.dump(results, file)

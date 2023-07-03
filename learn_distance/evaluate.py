@@ -13,10 +13,10 @@ def compare_cf(d, diff, mad, ftv, tol=1e-5, n_avg=5):
    distance = np.sort(distance)
    return np.sum(distance[:n_avg])/n_avg
 
-def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5):
+def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5, method="random"):
     m = dice_ml.Model(model=model, backend="sklearn")
     d = dice_ml.Data(dataframe=df, continuous_features=cont, outcome_name='label')
-    exp = dice_ml.Dice(d, m, method="random")
+    exp = dice_ml.Dice(d, m, method=method)
     all_comparisons = []
     top_comparisons = []
     top_cfs = []
@@ -57,12 +57,10 @@ def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5):
                 n_avg=n_avg
             )
             vals = [[int(i)], [int(j)]]
-            for i in range(len(d)):
-                vals.append([d[i]])
+            for f in ftv:
+                vals.append([d[f]])
             row = pd.DataFrame(dict(zip(['idx', 'cf_idx'] + ftv, vals)))
-            changes = pd.concat([changes, row])
-            # changes.loc[len(changes)-1] = [int(i), int(j)] + list(np.zeros(len(ftv)))
-            # changes.iloc[changes.shape[0]-1,:][ftv] = d
+            changes = pd.concat([changes,row], ignore_index=True)
             all_comparisons.append(c)
             comparisons.append(c)
         top = np.argmin(comparisons)
