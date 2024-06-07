@@ -13,9 +13,9 @@ def compare_cf(d, diff, mad, ftv, tol=1e-5, n_avg=5):
    distance = np.sort(distance)
    return np.sum(distance[:n_avg])/n_avg
 
-def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5, method="random"):
+def evaluate_rank(df, data, model, diff, ftv, cont=[], n_cfs=3, n_avg=5, method="random"):
     m = dice_ml.Model(model=model, backend="sklearn")
-    d = dice_ml.Data(dataframe=df, continuous_features=cont, outcome_name='label')
+    d = dice_ml.Data(dataframe=data, continuous_features=cont, outcome_name='label')
     exp = dice_ml.Dice(d, m, method=method)
     all_comparisons = []
     top_comparisons = []
@@ -25,7 +25,8 @@ def evaluate_rank(df, model, diff, ftv, cont=[], n_cfs=3, n_avg=5, method="rando
     few = []
     few_cfs = []
     changes = pd.DataFrame(columns = ['idx', 'cf_idx'] + ftv)
-    mad = sp.stats.median_abs_deviation(diff[ftv])
+    # mad = sp.stats.median_abs_deviation(diff[ftv])
+    mad = np.mean( np.abs(diff[ftv] - np.mean(diff[ftv],axis=0)), axis=0)
     for i in trange(df.shape[0]):
         query = df.iloc[i:(i+1),:]
         query = query.drop(columns=['label'])

@@ -28,6 +28,7 @@ parser.add_argument('-p', '--problem', help='Prediction problem for experiment',
 parser.add_argument('-m', '--model', help='sklearn model for experiment', choices=['rf', 'logistic', 'boosting'], type=str)
 parser.add_argument('-e', '--method', help='method for generating counterfactuals', choices=['genetic', 'random', 'kdtree'], type=str, required=False)
 parser.add_argument('-l', '--load', action='store_true', help='load preprocessed data')
+parser.add_argument('-f', '--features', help='Specify which features to change; either "all" or "freq"', choices=['all', 'freq'], type=str, required=False)
 
 args = parser.parse_args()
 
@@ -38,6 +39,11 @@ if args.method is not None:
     method = args.method
 else:
     method = 'random'
+    
+if args.features is not None:
+    ftv_name = args.features
+else:
+    ftv_name = 'freq'
 
 print('Loading data...')
 
@@ -88,9 +94,11 @@ else:
 
 y = pd.read_csv(cwd+'/data/fiddle/FIDDLE_{dataset}/population/{problem}.csv'.format(problem=problem, dataset=dataset))
 
+'''
 df_start = df_start.iloc[na_both,:]
 df_end = df_end.iloc[na_both,:]
-label = y[problem[:problem.find('_')]+'_LABEL'][na_both]
+'''
+label = y[problem[:problem.find('_')]+'_LABEL'] #[na_both]
 
 print('Training model...')
 
@@ -112,22 +120,30 @@ start = train.drop(columns=['label'])
 test = pd.DataFrame(xte, columns=df_start.columns)
 test['label'] = yte
 
-pos = np.where(yte==1)
+preds = boundary.predict(xte)
+pos = np.where(preds==1)
 diff = df_end - df_start
 test_pos = test.iloc[pos]
-test_pos[freq_stats] = test_pos[freq_stats].apply(pd.to_numeric)
+print('Testing with', len(test_pos), 'examples')
+print('Observed', np.sum(preds), 'positive examples')
+
+if ftv_name == 'freq':
+    ftv = freq_stats
+elif ftv_name == 'all':
+    ftv = list(df_start.columns.values)
+test_pos.loc[:,ftv] = test_pos[ftv].apply(pd.to_numeric)
 
 print('Evaluating counterfactuals...')
 
-eval_df = test_pos
 results = evaluate_rank(
-    df = eval_df,
+    df = test_pos,
+    data = test,
     model = boundary,
     diff = diff,
     n_cfs=10,
     n_avg=3,
-    ftv = freq_stats,
-    cont = freq_stats,
+    ftv = ftv,
+    cont = ftv,
     method=method
 )
 
